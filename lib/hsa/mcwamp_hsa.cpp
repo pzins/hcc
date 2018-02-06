@@ -5,6 +5,7 @@
 //===----------------------------------------------------------------------===//
 
 // Kalmar Runtime implementation (HSA version)
+#include "hccTracer.h"
 
 #include "../hc2/headers/types/program_state.hpp"
 
@@ -4324,6 +4325,9 @@ HSADispatch::dispose() {
         uint64_t end   = getEndTimestamp();
         //std::string kname = kernel ? (kernel->kernelName + "+++" + kernel->shortKernelName) : "hmm";
         //LOG_PROFILE(this, start, end, "kernel", kname.c_str(), std::hex << "kernel="<< kernel << " " << (kernel? kernel->kernelCodeHandle:0x0) << " aql.kernel_object=" << aql.kernel_object << std::dec);
+        std::string kname = getKernelName();
+        tracepoint(hccTracer, kernel_begin, start, kname.c_str());
+        tracepoint(hccTracer, kernel_end, end, kname.c_str());
         LOG_PROFILE(this, start, end, "kernel", getKernelName(), "");
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -4655,6 +4659,8 @@ HSABarrier::dispose() {
             }
             depss << *depAsyncOps[i];
         };
+        tracepoint(hccTracer, barrier_begin, start, "barrier");
+        tracepoint(hccTracer, barrier_end, end, "barrier");
         LOG_PROFILE(this, start, end, "barrier", "depcnt=" + std::to_string(depCount) + ",acq=" + fenceToString(acqBits) + ",rel=" + fenceToString(relBits), depss.str())
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -5019,7 +5025,8 @@ HSACopy::dispose() {
             uint64_t end   = getEndTimestamp();
 
             double bw = (double)(sizeBytes)/(end-start) * (1000.0/1024.0) * (1000.0/1024.0);
-
+            tracepoint(hccTracer, async_memcpy_begin, start, getCopyCommandString().c_str());
+            tracepoint(hccTracer, async_memcpy_end, end, getCopyCommandString().c_str());
             LOG_PROFILE(this, start, end, "copy", getCopyCommandString(),  "\t" << sizeBytes << " bytes;\t" << sizeBytes/1024.0/1024 << " MB;\t" << bw << " GB/s;");
         }
         Kalmar::ctx.releaseSignal(signal, signalIndex);
