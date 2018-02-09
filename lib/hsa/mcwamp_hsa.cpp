@@ -6,6 +6,7 @@
 
 // Kalmar Runtime implementation (HSA version)
 #include "hccTracer.h"
+#include <hsa_ext_profiler.h>
 
 #include "../hc2/headers/types/program_state.hpp"
 
@@ -966,6 +967,38 @@ namespace Kalmar {
 //
 // HSAQueue is the implementation of accelerator_view for HSA back-and.  HSAQueue
 // points to RocrQueue, or to nullptr if the HSAQueue is not currently attached to a RocrQueue.
+std::map<uint64_t, const char*> symbol_names;
+
+hsa_status_t aql_callback(const hsa_aql_trace_t *aql_trace, void *user_arg)
+{
+    switch (aql_trace->type) {
+        case HSA_PACKET_TYPE_VENDOR_SPECIFIC:
+            tracepoint(hccTracer, aql_packet_submitted, aql_trace->packet_id,
+                "vendor_specific", aql_trace->agent.handle, aql_trace->queue->id);
+        case HSA_PACKET_TYPE_INVALID:
+            tracepoint(hccTracer, aql_packet_submitted, aql_trace->packet_id,
+                "invalid", aql_trace->agent.handle, aql_trace->queue->id);
+        case HSA_PACKET_TYPE_BARRIER_AND:
+            tracepoint(hccTracer, aql_packet_submitted, aql_trace->packet_id,
+                "barrier_and", aql_trace->agent.handle, aql_trace->queue->id);
+        case HSA_PACKET_TYPE_AGENT_DISPATCH:
+            tracepoint(hccTracer, aql_packet_submitted, aql_trace->packet_id,
+                "agent_dispatch", aql_trace->agent.handle, aql_trace->queue->id);
+        case HSA_PACKET_TYPE_BARRIER_OR:
+            tracepoint(hccTracer, aql_packet_submitted, aql_trace->packet_id,
+                "barrier_or", aql_trace->agent.handle, aql_trace->queue->id);
+        case HSA_PACKET_TYPE_KERNEL_DISPATCH: {
+            uint64_t kernel_object = ((hsa_kernel_dispatch_packet_t*) aql_trace->packet)->kernel_object;
+            const char* name = symbol_names[kernel_object];
+            tracepoint(hccTracer, aql_kernel_dispatch_packet_submitted,
+                aql_trace->packet_id, aql_trace->agent.handle, aql_trace->queue->id, kernel_object, name);
+        } break;
+        default:
+            break;
+    }
+
+    return HSA_STATUS_SUCCESS;
+}
 struct RocrQueue {
     static void callbackQueue(hsa_status_t status, hsa_queue_t* queue, void *data) {
         STATUS_CHECK(status, __LINE__);
@@ -977,8 +1010,11 @@ struct RocrQueue {
         assert(queue_size != 0);
 
         /// Create a queue using the maximum size.
-        hsa_status_t status = hsa_queue_create(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
-                                  UINT32_MAX, UINT32_MAX, &_hwQueue);
+        // hsa_status_t status = hsa_queue_create(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
+            // UINT32_MAX, UINT32_MAX, &_hwQueue);
+        hsa_status_t status = hsa_ext_tools_queue_create_profiled(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
+            UINT32_MAX, UINT32_MAX, &_hwQueue);
+        hsa_ext_tools_register_aql_trace_callback(_hwQueue, NULL, aql_callback);
         DBOUT(DB_QUEUE, "  " <<  __func__ << ": created an HSA command queue: " << _hwQueue << "\n");
 
         STATUS_CHECK(status, __LINE__);
@@ -1122,6 +1158,24 @@ public:
         if (valid) {
             dispose();
         }
+        
+                // size_t count = hsa_ext_tools_get_kernel_times(0, NULL);
+                // if (count > 0) {
+                //     hsa_profiler_kernel_time_t* records = new hsa_profiler_kernel_time_t[count];
+                //     count = hsa_ext_tools_get_kernel_times(count, records);
+                // 
+                //     hsa_profiler_kernel_time_t record;
+                //     const char* name;
+                //     for (int i = 0; i < count; i++) {
+                //         record = records[i];
+                //         // name = symbol_names[kernel_object_symbols[record.kernel]];
+                //         printf("kernel : %d\n",record.kernel);
+                //         // tracepoint(hsa_runtime, kernel_start_nm, record.kernel, name, record.agent.handle, record.queue->id, record.time.start - init_timestamp);
+                //         // tracepoint(hsa_runtime, kernel_end_nm, record.kernel, name, record.agent.handle, record.queue->id, record.time.end - init_timestamp);
+                //     }
+                // 
+                //     delete[] records;
+                // }
 
         DBOUT(DB_INIT, "HSAQueue::~HSAQueue() " << this << "out\n");
     }
@@ -2562,6 +2616,7 @@ public:
                         status = hsa_executable_symbol_get_info(kernelSymbol, HSA_EXECUTABLE_SYMBOL_INFO_KERNEL_OBJECT, &kernelCodeHandle);
                         if (status == HSA_STATUS_SUCCESS) {
                             kernel =  new HSAKernel(str, shortName, executable, kernelSymbol, kernelCodeHandle);
+                            symbol_names[kernelCodeHandle] = shortName.c_str();
                             break;
                         }
                     }

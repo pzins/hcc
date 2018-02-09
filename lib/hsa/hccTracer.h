@@ -85,7 +85,43 @@ TRACEPOINT_EVENT(
     )
 )
 
+TRACEPOINT_EVENT(
+	hccTracer,
+	aql_packet_submitted,
+	TP_ARGS(
+		uint64_t, packet_id,
+		const char*, packet_type,
+		uint64_t, agent_handle,
+		uint64_t, queue_id
+	),
+	TP_FIELDS(
+		ctf_integer(uint64_t, packet_id, packet_id)
+		ctf_string(packet_type, packet_type)
+		ctf_integer_hex(uint64_t, agent_handle, agent_handle)
+		ctf_integer(uint64_t, queue_id, queue_id)
+	)
+)
 
+
+
+TRACEPOINT_EVENT(
+	hccTracer,
+	aql_kernel_dispatch_packet_submitted,
+	TP_ARGS(
+		uint64_t, packet_id,
+		uint64_t, agent_handle,
+		uint64_t, queue_id,
+		uint64_t, kernel_object,
+		const char*, kernel_name
+	),
+	TP_FIELDS(
+		ctf_integer(uint64_t, packet_id, packet_id)
+		ctf_integer_hex(uint64_t, agent_handle, agent_handle)
+		ctf_integer(uint64_t, queue_id, queue_id)
+		ctf_integer_hex(uint64_t, kernel_object, kernel_object)
+		ctf_string(kernel_name, kernel_name)
+	)
+)
 
 #endif
 

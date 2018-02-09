@@ -4,7 +4,8 @@
 if (HAS_ROCM EQUAL 1)
 add_mcwamp_library_hsa(mcwamp_hsa mcwamp_hsa.cpp unpinned_copy_engine.cpp hccTracer.o)
 add_mcwamp_library_hc_am(hc_am hc_am.cpp)
-include_directories(/usr/include/x86_64-linux-gnu)
+include_directories(/usr/include/x86_64-linux-gnu /opt/rocm/hsa/include/hsa )
+#include_directories(/usr/include/x86_64-linux-gnu /opt/rocm/hsa/include/hsa /home/pierre/dev/GPA/Build/Linux/2_24/Include)
 
 install(TARGETS mcwamp_hsa hc_am
     EXPORT hcc-targets
@@ -26,4 +27,5 @@ if (CODEXL_ACTIVITY_LOGGER_LIBRARY)
   target_link_libraries(hc_am ${CODEXL_ACTIVITY_LOGGER_LIBRARY}/libCXLActivityLogger.so)
 endif (CODEXL_ACTIVITY_LOGGER_LIBRARY)
 endif (USE_CODEXL_ACTIVITY_LOGGER EQUAL 1)
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ldl -llttng-ust")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ldl -llttng-ust -L /opt/rocm/hsa/lib -lhsa-runtime-tools64 -L/home/pierre/dev/GPA/Build/Linux/2_24/Bin/Linx64 -lGPUPerfAPIHSA")
+#set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ldl -llttng-ust -L /opt/rocm/hsa/lib -lhsa-runtime-tools64 -L/home/pierre/dev/GPA/Build/Linux/2_24/Bin/Linx64 -lGPUPerfAPIHSA")
