@@ -7,6 +7,9 @@
 // Kalmar Runtime implementation (HSA version)
 #include "hccTracer.h"
 #include <hsa_ext_profiler.h>
+#include <GPUPerfAPI-HSA.h>
+#include <amd_hsa_tools_interfaces.h>
+#include <pthread.h>
 
 #include "../hc2/headers/types/program_state.hpp"
 
@@ -998,7 +1001,71 @@ hsa_status_t aql_callback(const hsa_aql_trace_t *aql_trace, void *user_arg)
     }
 
     return HSA_STATUS_SUCCESS;
+
+
 }
+pthread_mutex_t mutex;
+
+void gpa_logging_callback(GPA_Logging_Type logging_type, const char* message)
+{
+    std::cout << "[GPA log] " << message << std::endl;
+}
+gpa_uint32 session_id;
+void close_context(gpa_uint32 session_id)
+{
+    // Close the context opened for the previous kernel
+    // These operations do not work when performed in the post-dispatch callback
+    // read_gpa_counters(session_id);
+    GPA_CloseContext();
+}
+void pre_dispatch_callback(const hsa_dispatch_callback_t* dispatch_params, void* user_args)
+{
+    printf("55555555555555 pre_dispatch_callback    #    \n");
+    pthread_mutex_lock(&mutex);
+
+    if (session_id > 0)
+        close_context(session_id);
+    printf("4444\n");
+    GPA_HSA_Context *context;
+    context->m_pAgent = &(dispatch_params->agent);
+    context->m_pQueue = dispatch_params->queue;
+    context->m_pAqlTranslationHandle = dispatch_params->aql_translation_handle;
+    GPA_Status s = GPA_OpenContext(context);
+    printf("%d\n", s==GPA_STATUS_OK);
+    printf("3333\n");
+    gpa_uint32 numCounters, passCount;
+    GPA_GetNumCounters(&numCounters);
+
+    // Enable counters that require only one pass
+    // TODO allow more passes
+    for (int counter = 0; counter < numCounters; counter++) {
+        GPA_EnableCounter(counter);
+        GPA_GetPassCount(&passCount);
+        if (passCount > 1)
+            GPA_DisableCounter(counter);
+    }
+    printf("22222\n");
+
+    GPA_BeginSession(&session_id);
+    // session_kernel_objects[session_id] = dispatch_params->aql_packet->kernel_object;
+
+    // Sample the enabled counters
+    printf("11111\n");
+    GPA_BeginPass();
+    GPA_BeginSample(0);
+    printf("00000\n");
+}
+
+void post_dispatch_callback(const hsa_dispatch_callback_t* dispatch_params, void* user_args)
+{
+    printf("66666666666666666666 pre_dispatch_callback    #    \n");
+    GPA_EndSample();
+    GPA_EndPass();
+    GPA_EndSession();
+
+    pthread_mutex_unlock(&mutex);
+}
+
 struct RocrQueue {
     static void callbackQueue(hsa_status_t status, hsa_queue_t* queue, void *data) {
         STATUS_CHECK(status, __LINE__);
@@ -1010,17 +1077,20 @@ struct RocrQueue {
         assert(queue_size != 0);
 
         /// Create a queue using the maximum size.
-        // hsa_status_t status = hsa_queue_create(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
-            // UINT32_MAX, UINT32_MAX, &_hwQueue);
-        hsa_status_t status = hsa_ext_tools_queue_create_profiled(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
+        hsa_status_t status = hsa_queue_create(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
             UINT32_MAX, UINT32_MAX, &_hwQueue);
-        hsa_ext_tools_register_aql_trace_callback(_hwQueue, NULL, aql_callback);
+        // hsa_status_t status = hsa_ext_tools_queue_create_profiled(agent, queue_size, HSA_QUEUE_TYPE_SINGLE, callbackQueue, NULL,
+            // UINT32_MAX, UINT32_MAX, &_hwQueue);
+        // hsa_ext_tools_register_aql_trace_callback(_hwQueue, NULL, aql_callback);
+        hsa_status_t s = hsa_ext_tools_set_callback_functions(_hwQueue, pre_dispatch_callback, post_dispatch_callback);
+
+        
         DBOUT(DB_QUEUE, "  " <<  __func__ << ": created an HSA command queue: " << _hwQueue << "\n");
 
         STATUS_CHECK(status, __LINE__);
 
         // TODO - should we provide a mechanism to conditionally enable profiling as a performance optimization?
-        status = hsa_amd_profiling_set_profiler_enabled(_hwQueue, 1);
+        // status = hsa_amd_profiling_set_profiler_enabled(_hwQueue, 1);
 
         // Create the links between the queues:
         assignHccQueue(hccQueue);
@@ -3188,6 +3258,9 @@ public:
         DBOUT(DB_INIT,"HSAContext::HSAContext(): init HSA runtime");
 
         hsa_status_t status;
+        GPA_RegisterLoggingCallback(GPA_LOGGING_ALL, gpa_logging_callback);
+pthread_mutex_init(&mutex, nullptr);
+session_id = 0;
         status = hsa_init();
         if (status != HSA_STATUS_SUCCESS)
           return;
