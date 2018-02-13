@@ -464,6 +464,12 @@ public:
     ~HSAKernel() {
         DBOUT(DB_INIT, "HSAKernel::~HSAKernel\n");
     }
+    void getInfos(uint32_t* _static_group_segment_size, uint32_t* _private_segment_size,
+                    uint16_t* _workitem_vgpr_count) const {
+                        *_static_group_segment_size = static_group_segment_size;
+                        *_private_segment_size = private_segment_size;
+                        *_workitem_vgpr_count = workitem_vgpr_count;
+                    }
 }; // end of HSAKernel
 
 // Stores the device and queue for op coordinate:
@@ -4326,8 +4332,13 @@ HSADispatch::dispose() {
         //std::string kname = kernel ? (kernel->kernelName + "+++" + kernel->shortKernelName) : "hmm";
         //LOG_PROFILE(this, start, end, "kernel", kname.c_str(), std::hex << "kernel="<< kernel << " " << (kernel? kernel->kernelCodeHandle:0x0) << " aql.kernel_object=" << aql.kernel_object << std::dec);
         std::string kname = getKernelName();
-        tracepoint(hccTracer, kernel_begin, start, kname.c_str());
-        tracepoint(hccTracer, kernel_end, end, kname.c_str());
+        std::string long_kname = getLongKernelName();
+        uint32_t static_group_segment_size;
+        uint32_t private_segment_size;
+        uint16_t workitem_vgpr_count;
+        kernel->getInfos(&static_group_segment_size, &private_segment_size, &workitem_vgpr_count);
+        tracepoint(hccTracer, kernel_begin, start, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
+        tracepoint(hccTracer, kernel_end, end, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
         LOG_PROFILE(this, start, end, "kernel", getKernelName(), "");
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -4659,8 +4670,8 @@ HSABarrier::dispose() {
             }
             depss << *depAsyncOps[i];
         };
-        tracepoint(hccTracer, barrier_begin, start, "barrier");
-        tracepoint(hccTracer, barrier_end, end, "barrier");
+        tracepoint(hccTracer, barrier_begin, start, "barrier", depCount, acqBits, relBits);
+        tracepoint(hccTracer, barrier_end, end, "barrier", depCount, acqBits, relBits);
         LOG_PROFILE(this, start, end, "barrier", "depcnt=" + std::to_string(depCount) + ",acq=" + fenceToString(acqBits) + ",rel=" + fenceToString(relBits), depss.str())
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -5025,8 +5036,8 @@ HSACopy::dispose() {
             uint64_t end   = getEndTimestamp();
 
             double bw = (double)(sizeBytes)/(end-start) * (1000.0/1024.0) * (1000.0/1024.0);
-            tracepoint(hccTracer, async_memcpy_begin, start, getCopyCommandString().c_str());
-            tracepoint(hccTracer, async_memcpy_end, end, getCopyCommandString().c_str());
+            tracepoint(hccTracer, async_memcpy_begin, start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpy_end, end, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
             LOG_PROFILE(this, start, end, "copy", getCopyCommandString(),  "\t" << sizeBytes << " bytes;\t" << sizeBytes/1024.0/1024 << " MB;\t" << bw << " GB/s;");
         }
         Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -5035,6 +5046,8 @@ HSACopy::dispose() {
             uint64_t start = apiStartTick;
             uint64_t end   = Kalmar::ctx.getSystemTicks();
             double bw = (double)(sizeBytes)/(end-start) * (1000.0/1024.0) * (1000.0/1024.0);
+            tracepoint(hccTracer, async_memcpyslo_begin, start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpyslo_end, end, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
             LOG_PROFILE(this, start, end, "copyslo", getCopyCommandString(),  "\t" << sizeBytes << " bytes;\t" << sizeBytes/1024.0/1024 << " MB;\t" << bw << " GB/s;");
         }
     }
