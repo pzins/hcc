@@ -16,7 +16,7 @@ LIABILITY, WHETHER INN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR INN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-
+#include "hccTracer.h"
 #include <cassert>
 #include <atomic>
 #include <hc.hpp>
@@ -154,6 +154,7 @@ UnpinnedCopyEngine::~UnpinnedCopyEngine()
 //IN: waitFor - hsaSignal to wait for - the copy will begin only when the specified dependency is resolved.  May be NULL indicating no dependency.
 void UnpinnedCopyEngine::CopyHostToDevicePinInPlace(void* dst, const void* src, size_t sizeBytes, hsa_signal_t *waitFor)
 {
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyHostToDevicePinInPlace", sizeBytes);
     std::lock_guard<std::mutex> l (_copyLock);
 
     const char *srcp = static_cast<const char*> (src);
@@ -196,18 +197,23 @@ void UnpinnedCopyEngine::CopyHostToDevicePinInPlace(void* dst, const void* src, 
     hsa_amd_memory_unlock(const_cast<char*> (srcp));
     // Assume subsequent commands are dependent on previous and don't need dependency after first copy submitted, HIP_ONESHOT_COPY_DEP=1
     waitFor = NULL;
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyHostToDevicePinInPlace", sizeBytes);
+
 }
 
 
 // Copy using simple memcpy.  Only works on large-bar systems.
 void UnpinnedCopyEngine::CopyHostToDeviceMemcpy(void* dst, const void* src, size_t sizeBytes, hsa_signal_t *waitFor)
-{
+{    
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyHostToDeviceMemcpy", sizeBytes);
+
     if (!_isLargeBar) {
         THROW_ERROR (hipErrorInvalidValue, HSA_STATUS_ERROR_INVALID_ARGUMENT);
     }
 
     memcpy(dst,src,sizeBytes);
     std::atomic_thread_fence(std::memory_order_release);
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyHostToDeviceMemcpy", sizeBytes);
 };
 
 
@@ -262,6 +268,7 @@ void UnpinnedCopyEngine::CopyHostToDevice(UnpinnedCopyEngine::CopyMode copyMode,
 //IN: waitFor - hsaSignal to wait for - the copy will begin only when the specified dependency is resolved.  May be NULL indicating no dependency.
 void UnpinnedCopyEngine::CopyHostToDeviceStaging(void* dst, const void* src, size_t sizeBytes, hsa_signal_t *waitFor)
 {
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyHostToDeviceStaging", sizeBytes);
 	{
         std::lock_guard<std::mutex> l (_copyLock);
 
@@ -312,11 +319,15 @@ void UnpinnedCopyEngine::CopyHostToDeviceStaging(void* dst, const void* src, siz
             hsa_signal_wait_acquire(_completionSignal[i], HSA_SIGNAL_CONDITION_LT, 1, UINT64_MAX, HSA_WAIT_STATE_ACTIVE);
         }
 	}
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyHostToDeviceStaging", sizeBytes);
+
 }
 
 
 void UnpinnedCopyEngine::CopyDeviceToHostPinInPlace(void* dst, const void* src, size_t sizeBytes, hsa_signal_t *waitFor)
 {
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyDeviceToHostPinInPlace", sizeBytes);
+
     std::lock_guard<std::mutex> l (_copyLock);
 
     const char *srcp = static_cast<const char*> (src);
@@ -353,6 +364,7 @@ void UnpinnedCopyEngine::CopyDeviceToHostPinInPlace(void* dst, const void* src, 
 
     // Assume subsequent commands are dependent on previous and don't need dependency after first copy submitted, HIP_ONESHOT_COPY_DEP=1
     waitFor = NULL;
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyDeviceToHostPinInPlace", sizeBytes);
 }
 
 
@@ -384,6 +396,7 @@ void UnpinnedCopyEngine::CopyDeviceToHost(CopyMode copyMode ,void* dst, const vo
 //IN: waitFor - hsaSignal to wait for - the copy will begin only when the specified dependency is resolved.  May be NULL indicating no dependency.
 void UnpinnedCopyEngine::CopyDeviceToHostStaging(void* dst, const void* src, size_t sizeBytes, hsa_signal_t *waitFor)
 {
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyDeviceToHostStaging", sizeBytes);
     {
         std::lock_guard<std::mutex> l (_copyLock);
 
@@ -439,6 +452,7 @@ void UnpinnedCopyEngine::CopyDeviceToHostStaging(void* dst, const void* src, siz
             }
 		}
     }
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyDeviceToHostStaging", sizeBytes);
 }
 
 
@@ -449,6 +463,8 @@ void UnpinnedCopyEngine::CopyDeviceToHostStaging(void* dst, const void* src, siz
 //IN: waitFor - hsaSignal to wait for - the copy will begin only when the specified dependency is resolved.  May be NULL indicating no dependency.
 void UnpinnedCopyEngine::CopyPeerToPeer(void* dst, hsa_agent_t dstAgent, const void* src, hsa_agent_t srcAgent, size_t sizeBytes, hsa_signal_t *waitFor)
 {
+    tracepoint(hccTracer, unpinned_memory_engine_copy_entry, "CopyPeerToPeer", sizeBytes);
+
     std::lock_guard<std::mutex> l (_copyLock);
 
     const char *srcp0 = static_cast<const char*> (src);
@@ -524,4 +540,5 @@ void UnpinnedCopyEngine::CopyPeerToPeer(void* dst, hsa_agent_t dstAgent, const v
     for (int i=0; i<_numBuffers; i++) {
         hsa_signal_wait_acquire(_completionSignal2[i], HSA_SIGNAL_CONDITION_LT, 1, UINT64_MAX, HSA_WAIT_STATE_ACTIVE);
     }
+    tracepoint(hccTracer, unpinned_memory_engine_copy_exit, "CopyPeerToPeer", sizeBytes);
 }
