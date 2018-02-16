@@ -464,12 +464,10 @@ public:
     ~HSAKernel() {
         DBOUT(DB_INIT, "HSAKernel::~HSAKernel\n");
     }
-    void getInfos(uint32_t* _static_group_segment_size, uint32_t* _private_segment_size,
-                    uint16_t* _workitem_vgpr_count) const {
-                        *_static_group_segment_size = static_group_segment_size;
-                        *_private_segment_size = private_segment_size;
-                        *_workitem_vgpr_count = workitem_vgpr_count;
-                    }
+    uint32_t getStaticGroupSegmentSize() const { return static_group_segment_size;}
+    uint32_t getPrivateSegmentSize() const { return private_segment_size;}
+    uint32_t getWorkitemVgprCount() const { return workitem_vgpr_count;}
+
 }; // end of HSAKernel
 
 // Stores the device and queue for op coordinate:
@@ -4333,10 +4331,10 @@ HSADispatch::dispose() {
         //LOG_PROFILE(this, start, end, "kernel", kname.c_str(), std::hex << "kernel="<< kernel << " " << (kernel? kernel->kernelCodeHandle:0x0) << " aql.kernel_object=" << aql.kernel_object << std::dec);
         std::string kname = getKernelName();
         std::string long_kname = getLongKernelName();
-        uint32_t static_group_segment_size;
-        uint32_t private_segment_size;
-        uint16_t workitem_vgpr_count;
-        kernel->getInfos(&static_group_segment_size, &private_segment_size, &workitem_vgpr_count);
+        
+        uint32_t static_group_segment_size = (kernel? kernel->getStaticGroupSegmentSize():0);
+        uint32_t private_segment_size = (kernel? kernel->getPrivateSegmentSize():0);
+        uint16_t workitem_vgpr_count = (kernel? kernel->getWorkitemVgprCount():0);
         tracepoint(hccTracer, kernel_begin, start, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
         tracepoint(hccTracer, kernel_end, end, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
         LOG_PROFILE(this, start, end, "kernel", getKernelName(), "");
