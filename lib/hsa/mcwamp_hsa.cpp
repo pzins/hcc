@@ -4335,8 +4335,8 @@ HSADispatch::dispose() {
         uint32_t static_group_segment_size = (kernel? kernel->getStaticGroupSegmentSize():0);
         uint32_t private_segment_size = (kernel? kernel->getPrivateSegmentSize():0);
         uint16_t workitem_vgpr_count = (kernel? kernel->getWorkitemVgprCount():0);
-        tracepoint(hccTracer, kernel_begin, start, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
-        tracepoint(hccTracer, kernel_end, end, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
+        tracepoint(hccTracer, kernel_begin, "hcc", start, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
+        tracepoint(hccTracer, kernel_end, "hcc", end, kname.c_str(), long_kname.c_str(), static_group_segment_size, private_segment_size, workitem_vgpr_count);
         LOG_PROFILE(this, start, end, "kernel", getKernelName(), "");
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -4668,8 +4668,8 @@ HSABarrier::dispose() {
             }
             depss << *depAsyncOps[i];
         };
-        tracepoint(hccTracer, barrier_begin, start, "barrier", depCount, acqBits, relBits);
-        tracepoint(hccTracer, barrier_end, end, "barrier", depCount, acqBits, relBits);
+        tracepoint(hccTracer, barrier_begin, "hcc", start, "barrier", depCount, acqBits, relBits);
+        tracepoint(hccTracer, barrier_end, "hcc", end, "barrier", depCount, acqBits, relBits);
         LOG_PROFILE(this, start, end, "barrier", "depcnt=" + std::to_string(depCount) + ",acq=" + fenceToString(acqBits) + ",rel=" + fenceToString(relBits), depss.str())
     }
     Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -5034,8 +5034,8 @@ HSACopy::dispose() {
             uint64_t end   = getEndTimestamp();
 
             double bw = (double)(sizeBytes)/(end-start) * (1000.0/1024.0) * (1000.0/1024.0);
-            tracepoint(hccTracer, async_memcpy_begin, start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
-            tracepoint(hccTracer, async_memcpy_end, end, getCopyCommandString().c_str(), -1*sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpy_begin, "hcc", start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpy_end, "hcc", end, getCopyCommandString().c_str(), -1*sizeBytes, sizeBytes/1024.0/1024, bw);
             LOG_PROFILE(this, start, end, "copy", getCopyCommandString(),  "\t" << sizeBytes << " bytes;\t" << sizeBytes/1024.0/1024 << " MB;\t" << bw << " GB/s;");
         }
         Kalmar::ctx.releaseSignal(signal, signalIndex);
@@ -5044,8 +5044,8 @@ HSACopy::dispose() {
             uint64_t start = apiStartTick;
             uint64_t end   = Kalmar::ctx.getSystemTicks();
             double bw = (double)(sizeBytes)/(end-start) * (1000.0/1024.0) * (1000.0/1024.0);
-            tracepoint(hccTracer, async_memcpyslo_begin, start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
-            tracepoint(hccTracer, async_memcpyslo_end, end, getCopyCommandString().c_str(), -1*sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpyslo_begin, "hcc", start, getCopyCommandString().c_str(), sizeBytes, sizeBytes/1024.0/1024, bw);
+            tracepoint(hccTracer, async_memcpyslo_end, "hcc", end, getCopyCommandString().c_str(), -1*sizeBytes, sizeBytes/1024.0/1024, bw);
             LOG_PROFILE(this, start, end, "copyslo", getCopyCommandString(),  "\t" << sizeBytes << " bytes;\t" << sizeBytes/1024.0/1024 << " MB;\t" << bw << " GB/s;");
         }
     }
