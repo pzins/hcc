@@ -1134,6 +1134,9 @@ public:
     //
     void printAsyncOps(std::ostream &s = std::cerr)
     {
+        std::stringstream ss;
+        ss<<*this;
+        int count_nullptr = 0;
         hsa_signal_value_t oldv=0;
         s << *this << " : " << asyncOps.size() << " op entries\n";
         for (int i=0; i<asyncOps.size(); i++) {
@@ -1165,10 +1168,12 @@ public:
                 }
             } else {
                 s << " op <nullptr>";
+                count_nullptr++;
             }
             s  << "\n";
 
         }
+        tracepoint(hccTracer, queue_stats, ss.str().c_str(), asyncOps.size() - count_nullptr);
     }
 
     // Save the command and type
@@ -2124,7 +2129,7 @@ public:
             // keep the hwqueue around until the number of hccQueues drops below the number of hwQueues
             // we have already allocated.
             auto rqSize = rocrQueues.size();
-            if (hccSize < rqSize)  {
+            if (1 || hccSize < rqSize)  {
                 auto iter = std::find(rocrQueues.begin(), rocrQueues.end(), rocrQueue);
                 assert (iter != rocrQueues.end());
                 // Remove the pointer from the list:
