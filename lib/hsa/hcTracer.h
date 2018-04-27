@@ -1,16 +1,16 @@
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER hccTracer
+#define TRACEPOINT_PROVIDER hcTracer
 
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "./hccTracer.h"
+#define TRACEPOINT_INCLUDE "./hcTracer.h"
 
-#if !defined(_hccTRACER_H) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define _hccTRACER_H
+#if !defined(_hcTRACER_H) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define _hcTRACER_H
 
 #include <lttng/tracepoint.h>
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     kernel_begin,
     TP_ARGS(
         const char*, cat_arg,
@@ -19,7 +19,7 @@ TRACEPOINT_EVENT(
         const char*, long_name_arg,
         const char*, tf_name_arg,
         uint32_t*, workgroup_size_arg,
-        uint32_t*, grid_size_arg,
+        uint16_t*, grid_size_arg,
         uint64_t, static_group_segment_size_arg,
         uint64_t, private_segment_size_arg,
         uint64_t, workitem_vgpr_count_arg
@@ -30,7 +30,7 @@ TRACEPOINT_EVENT(
         ctf_string(name, name_arg)
         ctf_string(long_name, long_name_arg)
         ctf_string(tf_name, tf_name_arg)
-        ctf_array(uint32_t, workgroup_size, workgroup_size_arg, 3)
+        ctf_array(uint16_t, workgroup_size, workgroup_size_arg, 3)
         ctf_array(uint32_t, grid_size, grid_size_arg, 3)
         ctf_integer(uint64_t, static_group_segment_size, static_group_segment_size_arg)
         ctf_integer(uint64_t, private_segment_size, private_segment_size_arg)
@@ -38,7 +38,7 @@ TRACEPOINT_EVENT(
     )
 )
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     kernel_end,
     TP_ARGS(
         const char*, cat_arg,
@@ -46,7 +46,7 @@ TRACEPOINT_EVENT(
         const char*, name_arg,
         const char*, long_name_arg,
         const char*, tf_name_arg,
-        uint32_t*, workgroup_size_arg,
+        uint16_t*, workgroup_size_arg,
         uint32_t*, grid_size_arg,
         uint64_t, static_group_segment_size_arg,
         uint64_t, private_segment_size_arg,
@@ -58,7 +58,7 @@ TRACEPOINT_EVENT(
         ctf_string(name, name_arg)
         ctf_string(long_name, long_name_arg)
         ctf_string(tf_name, tf_name_arg)
-        ctf_array(uint32_t, workgroup_size, workgroup_size_arg, 3)
+        ctf_array(uint16_t, workgroup_size, workgroup_size_arg, 3)
         ctf_array(uint32_t, grid_size, grid_size_arg, 3)
         ctf_integer(uint64_t, static_group_segment_size, static_group_segment_size_arg)
         ctf_integer(uint64_t, private_segment_size, private_segment_size_arg)
@@ -68,7 +68,7 @@ TRACEPOINT_EVENT(
 
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     async_memcpy_begin,
     TP_ARGS(
         const char*, cat_arg,
@@ -96,36 +96,22 @@ TRACEPOINT_EVENT(
     )
 )
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     async_memcpy_end,
     TP_ARGS(
         const char*, cat_arg,
         uint64_t, timestamp_arg,
-        const char*, name_arg,
-        int64_t, size_bytes_arg,
-        float, size_megabytes_arg,
-        float, throughput_arg,
-        uint32_t, isAsync_arg,
-        uint32_t, isSingleStepCopy_arg,
-        uint32_t, isPeerToPeer_arg,
-        uint32_t, isActiveWait_arg
+        const char*, name_arg
     ),
     TP_FIELDS(
         ctf_string(cat, cat_arg)
         ctf_integer(uint64_t, timestamp, timestamp_arg)
         ctf_string(name, name_arg)
-        ctf_integer(int64_t, size_bytes, size_bytes_arg)
-        ctf_float(float, size_megabytes, size_megabytes_arg)
-        ctf_float(double, throughput, throughput_arg)
-        ctf_integer(uint32_t, isAsync, isAsync_arg)
-        ctf_integer(uint32_t, isSingleStepCopy, isSingleStepCopy_arg)
-        ctf_integer(uint32_t, isPeerToPeer, isPeerToPeer_arg)
-        ctf_integer(uint32_t, isActiveWait, isActiveWait_arg)
     )
 )
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     async_memcpyslo_begin,
     TP_ARGS(
         const char*, cat_arg,
@@ -153,37 +139,23 @@ TRACEPOINT_EVENT(
     )
 )
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     async_memcpyslo_end,
     TP_ARGS(
         const char*, cat_arg,
         uint64_t, timestamp_arg,
-        const char*, name_arg,
-        int, size_bytes_arg,
-        float, size_megabytes_arg,
-        float, throughput_arg,
-        uint32_t, isAsync_arg,
-        uint32_t, isSingleStepCopy_arg,
-        uint32_t, isPeerToPeer_arg,
-        uint32_t, isActiveWait_arg
+        const char*, name_arg
     ),
     TP_FIELDS(
         ctf_string(cat, cat_arg)
         ctf_integer(uint64_t, timestamp, timestamp_arg)
         ctf_string(name, name_arg)
-        ctf_integer(int, size_bytes, size_bytes_arg)
-        ctf_float(float, size_megabytes, size_megabytes_arg)
-        ctf_float(double, throughput, throughput_arg)
-        ctf_integer(uint32_t, isAsync, isAsync_arg)
-        ctf_integer(uint32_t, isSingleStepCopy, isSingleStepCopy_arg)
-        ctf_integer(uint32_t, isPeerToPeer, isPeerToPeer_arg)
-        ctf_integer(uint32_t, isActiveWait, isActiveWait_arg)
     )
 )
 
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     barrier_begin,
     TP_ARGS(
         const char*, cat_arg,
@@ -204,7 +176,7 @@ TRACEPOINT_EVENT(
 )
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     barrier_end,
     TP_ARGS(
         const char*, cat_arg,
@@ -225,7 +197,7 @@ TRACEPOINT_EVENT(
 )
 
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     unpinned_memory_engine_copy_entry,
     TP_ARGS(
         const char*, cat_arg,
@@ -239,7 +211,7 @@ TRACEPOINT_EVENT(
     )
 )
 TRACEPOINT_EVENT(
-    hccTracer,
+    hcTracer,
     unpinned_memory_engine_copy_exit,
     TP_ARGS(
         const char*, cat_arg,
@@ -255,7 +227,7 @@ TRACEPOINT_EVENT(
 
 
 TRACEPOINT_EVENT(
-	hccTracer,
+	hcTracer,
 	queue_stats,
 	TP_ARGS(
 		const char*, queue_id_arg,
@@ -266,48 +238,6 @@ TRACEPOINT_EVENT(
         ctf_integer(uint64_t, size, size_arg)
 	)
 )
-
-
-// no more used, because profiling methods crash
-// TRACEPOINT_EVENT(
-// 	hccTracer,
-// 	aql_packet_submitted,
-// 	TP_ARGS(
-// 		uint64_t, packet_id,
-// 		const char*, packet_type,
-// 		uint64_t, agent_handle,
-// 		uint64_t, queue_id
-// 	),
-// 	TP_FIELDS(
-// 		ctf_integer(uint64_t, packet_id, packet_id)
-// 		ctf_string(packet_type, packet_type)
-// 		ctf_integer_hex(uint64_t, agent_handle, agent_handle)
-// 		ctf_integer(uint64_t, queue_id, queue_id)
-// 	)
-// )
-// 
-// 
-// 
-// TRACEPOINT_EVENT(
-// 	hccTracer,
-// 	aql_kernel_dispatch_packet_submitted,
-// 	TP_ARGS(
-// 		uint64_t, packet_id,
-// 		uint64_t, agent_handle,
-// 		uint64_t, queue_id,
-// 		uint64_t, kernel_object,
-// 		const char*, kernel_name
-// 	),
-// 	TP_FIELDS(
-// 		ctf_integer(uint64_t, packet_id, packet_id)
-// 		ctf_integer_hex(uint64_t, agent_handle, agent_handle)
-// 		ctf_integer(uint64_t, queue_id, queue_id)
-// 		ctf_integer_hex(uint64_t, kernel_object, kernel_object)
-// 		ctf_string(kernel_name, kernel_name)
-// 	)
-// )
-
-
 
 #endif
 

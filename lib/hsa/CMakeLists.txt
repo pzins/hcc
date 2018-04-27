@@ -2,7 +2,7 @@
 # HCC runtime (HSA implementation)
 ####################
 if (HAS_ROCM EQUAL 1)
-add_mcwamp_library_hsa(mcwamp_hsa mcwamp_hsa.cpp unpinned_copy_engine.cpp hccTracer.o)
+add_mcwamp_library_hsa(mcwamp_hsa mcwamp_hsa.cpp unpinned_copy_engine.cpp hcTracer.o)
 add_mcwamp_library_hc_am(hc_am hc_am.cpp)
 include_directories(/usr/include/x86_64-linux-gnu)
 
