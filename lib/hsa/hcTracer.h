@@ -18,8 +18,8 @@ TRACEPOINT_EVENT(
         const char*, name_arg,
         const char*, long_name_arg,
         const char*, tf_name_arg,
-        uint32_t*, workgroup_size_arg,
-        uint16_t*, grid_size_arg,
+        uint16_t*, workgroup_size_arg,
+        uint32_t*, grid_size_arg,
         uint64_t, static_group_segment_size_arg,
         uint64_t, private_segment_size_arg,
         uint64_t, workitem_vgpr_count_arg
