@@ -134,6 +134,11 @@ char * HCC_PROFILE_FILE=nullptr;
 
 // Profiler:
 // Use str::stream so output is atomic wrt other threads:
+// #define LOG_PROFILE(op, start, end, type, tag, msg) \
+// {\
+// }
+
+
 #define LOG_PROFILE(op, start, end, type, tag, msg) \
 {\
     std::stringstream sstream;\
@@ -149,6 +154,8 @@ char * HCC_PROFILE_FILE=nullptr;
    sstream <<  msg << "\n";\
    Kalmar::ctx.getHccProfileStream() << sstream.str();\
 }
+
+
 
 
 // Track a short thread-id, for debugging:
